@@ -11,11 +11,22 @@
 |
 */
 
-Route::get('/', function () {
-    return view('frontpage');
+
+
+Route::group(['middleware'=>'auth'],function(){
+
+			Route::get('/', function () {
+		    return view('frontpage');
+			});
+
+		Route::resource('notebooks','NotebooksController');
+		Route::resource('notes','NotesController');
+
+		Route::get('notes/{notebookId}/createNote','NotesController@createNote')->name('notes.createNote');
+
 });
 
-Route::get('/notebooks','NotebooksController@index');
 
+Auth::routes();
 
-
+// Route::get('/home', 'HomeController@index');

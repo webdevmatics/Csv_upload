@@ -24,10 +24,14 @@ body {
 	padding: 10px 0 7px 15px;
 }*/
 
-.navholder{
+.navholder a{
 	color: white;
 	top: 6px;
     position: relative;
+
+}
+.navholder li{
+    list-style-type: none;
 
 }
 
@@ -37,5 +41,8 @@ body {
 }
 
 a>img{
-	    width: 238px;
+	    width: 248px;
+}
+.card-title{
+	font-size: 17px;
 }
