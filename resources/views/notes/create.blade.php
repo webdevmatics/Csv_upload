@@ -5,6 +5,20 @@
     <h1>
         Create Note
     </h1>
+
+    @if(count($errors)>0)
+
+        <ul>
+            @foreach($errors->all() as $error)
+            
+            <li class="alert alert-danger">{{$error}}</li>
+
+            @endforeach
+
+        </ul>
+        
+    @endif
+
     <form action="{{route('notes.store')}}" method="POST">
         {{csrf_field()}}
         <div class="form-group">

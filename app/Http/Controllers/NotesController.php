@@ -10,24 +10,16 @@ use App\Http\Requests;
 
 class NotesController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
-    {
-        //
-    }
+    
 
     /**
      * Show the form for creating a new resource.
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function createNote($notebookId)
     {
-        //
+        return view('notes.create')->with('id',$notebookId);
     }
 
     /**
@@ -38,9 +30,15 @@ class NotesController extends Controller
      */
     public function store(Request $request)
     {
-        $inputData= $request->all();
+        
+        $this->validate($request,[
+            'title'=>'required|max:20|unique:notes,title',
+            'body'=>'required|min:50'
 
-        Note::create($inputData);
+            ]);
+
+
+        Note::create($request->all());
 
         $notebookId=$request->notebook_id;
 
@@ -102,8 +100,5 @@ class NotesController extends Controller
         return back();
     }
 
-    public function createNote($notebookId)
-    {
-        return view('notes.create')->with('id',$notebookId);
-    }
+    
 }
