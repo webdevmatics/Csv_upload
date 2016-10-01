@@ -15,47 +15,57 @@ class BudgetController extends Controller
     }
 
     public function store(Request $request)
-    {
+    {   
+        //get file
         $upload=$request->file('upload-file');
+        $filePath=$upload->getRealPath();
+        //open and read
+        $file=fopen($filePath, 'r');
 
-        $filePath = $upload->getRealPath();
-        $file = fopen($filePath, 'r');
+        $header= fgetcsv($file);
 
-        //csv table header
-        $header = fgetcsv($file, 5000, ',');
-        $escaped_header = [];
+        // dd($header);
+        $escapedHeader=[];
+        //validate
         foreach ($header as $key => $value) {
-            array_push($escaped_header, preg_replace('/[^a-z]/','',strtolower($value)));
+            $lheader=strtolower($value);
+            $escapedItem=preg_replace('/[^a-z]/', '', $lheader);
+            array_push($escapedHeader, $escapedItem);
         }
-        //looping through other columns skipping empty one
-        while ($columns = fgetcsv($file)) {
-            if ($columns[0] == "") {
+
+        //looping through othe columns
+        while($columns=fgetcsv($file))
+        {
+            if($columns[0]=="")
+            {
                 continue;
             }
-            //refining data triming special char
-            foreach ($columns as $key => &$val) {
-                $val = preg_replace('/\D/', "", $val);
+            //trim data
+            foreach ($columns as $key => &$value) {
+                $value=preg_replace('/\D/','',$value);
             }
 
-            $data = array_combine($escaped_header, $columns);
-            //settype to int and float
-            foreach ($data as $key => &$val) {
-                $val = ($key == 'zip' || $key == 'month') ? (integer)$val : (float)$val;
-            }
+           $data= array_combine($escapedHeader, $columns);
 
-            /*
-             * Table update part
-             */
-            $zip = $data['zip'];
-            $month = $data['month'];
-            $lodging = $data['lodging'];
-            $meal = $data['meal'];
-            $housing = $data['housing'];
-            $budget = Budget::firstOrNew(['zip' => $zip, 'month' => $month]);
-            $budget->lodging = $lodging;
-            $budget->meal = $meal;
-            $budget->housing = $housing;
-            $budget->save();
+           // setting type
+           foreach ($data as $key => &$value) {
+            $value=($key=="zip" || $key=="month")?(integer)$value: (float)$value;
+           }
+
+           // Table update
+           $zip=$data['zip'];
+           $month=$data['month'];
+           $lodging=$data['lodging'];
+           $meal=$data['meal'];
+           $housing=$data['housing'];
+
+           $budget= Budget::firstOrNew(['zip'=>$zip,'month'=>$month]);
+           $budget->lodging=$lodging;
+           $budget->meal=$meal;
+           $budget->housing=$housing;
+           $budget->save();
         }
+        
+        
     }
 }
