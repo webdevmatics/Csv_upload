@@ -6,7 +6,7 @@ use Google_Client;
 use Google_Service_Calendar;
 use Illuminate\Http\Request;
 
-class gController extends Controller
+class gCalendarController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -19,7 +19,7 @@ class gController extends Controller
 
         $client = new Google_Client();
         $client->setAuthConfig('client_secret.json');
-        $client->addScope(Google_Service_Calendar::CALENDAR_READONLY);
+        $client->addScope(Google_Service_Calendar::CALENDAR);
 
         $guzzleClient = new \GuzzleHttp\Client(array('curl' => array(CURLOPT_SSL_VERIFYPEER => false)));
         $client->setHttpClient($guzzleClient);
@@ -27,10 +27,9 @@ class gController extends Controller
         if (isset($_SESSION['access_token']) && $_SESSION['access_token']) {
             $client->setAccessToken($_SESSION['access_token']);
             $service = new Google_Service_Calendar($client);
-
-// Print the next 10 events on the user's calendar.
+ 
             $calendarId = 'primary';
-            // $calendarId = 'webdevmatics@gmail.com';
+          // Print the next 10 events on the user's calendar.
             $optParams = array(
                 'maxResults' => 10,
                 'orderBy' => 'startTime',
@@ -38,24 +37,10 @@ class gController extends Controller
                 'timeMin' => date('c'),
             );
             $results = $service->events->listEvents($calendarId, $optParams);
-
-            if (count($results->getItems()) == 0) {
-                print "No upcoming events found.\n";
-            } else {
-                print "Upcoming events:\n";
-                foreach ($results->getItems() as $event) {
-                    $start = $event->start->dateTime;
-                    if (empty($start)) {
-                        $start = $event->start->date;
-                    }
-                    printf("%s (%s)\n", $event->getSummary(), $start);
-                    echo "<br>";
-                }
-            }
+           return $results->getItems();
+            
 
         } else {
-//             $redirect_uri = 'http://' . $_SERVER['HTTP_HOST'] . '/oauth2callback.php';
-//             header('Location: ' . filter_var($redirect_uri, FILTER_SANITIZE_URL));
             return redirect('/oauth');
         }
 
@@ -64,11 +49,11 @@ class gController extends Controller
     public function oauth()
     {
         session_start();
-        $rurl = action('gController@oauth');
+        $rurl = action('gCalendarController@oauth');
         $client = new Google_Client();
         $client->setAuthConfigFile('client_secret.json');
         $client->setRedirectUri($rurl);
-        $client->addScope(Google_Service_Calendar::CALENDAR_READONLY);
+        $client->addScope(Google_Service_Calendar::CALENDAR);
 
         $guzzleClient = new \GuzzleHttp\Client(array('curl' => array(CURLOPT_SSL_VERIFYPEER => false)));
         $client->setHttpClient($guzzleClient);
@@ -77,13 +62,10 @@ class gController extends Controller
             $auth_url = $client->createAuthUrl();
             $filtered_url = filter_var($auth_url, FILTER_SANITIZE_URL);
             return redirect($filtered_url);
-//            header('Location: ' . filter_var($auth_url, FILTER_SANITIZE_URL));
         } else {
             $client->authenticate($_GET['code']);
             $_SESSION['access_token'] = $client->getAccessToken();
             return redirect('/cal');
-//            $redirect_uri             = 'http://' . $_SERVER['HTTP_HOST'] . '/';
-//            header('Location: ' . filter_var($redirect_uri, FILTER_SANITIZE_URL));
         }
     }
 
