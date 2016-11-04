@@ -4,10 +4,24 @@ namespace App\Http\Controllers;
 
 use Google_Client;
 use Google_Service_Calendar;
+use Google_Service_Calendar_Event;
 use Illuminate\Http\Request;
 
 class gCalendarController extends Controller
 {
+    protected $client;
+
+    public function __construct()
+    {
+        $client = new Google_Client();
+        $client->setAuthConfig('client_secret.json');
+        $client->addScope(Google_Service_Calendar::CALENDAR);
+
+        $guzzleClient = new \GuzzleHttp\Client(array('curl' => array(CURLOPT_SSL_VERIFYPEER => false)));
+        $client->setHttpClient($guzzleClient);
+        $this->client = $client;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -16,20 +30,12 @@ class gCalendarController extends Controller
     public function index()
     {
         session_start();
-
-        $client = new Google_Client();
-        $client->setAuthConfig('client_secret.json');
-        $client->addScope(Google_Service_Calendar::CALENDAR);
-
-        $guzzleClient = new \GuzzleHttp\Client(array('curl' => array(CURLOPT_SSL_VERIFYPEER => false)));
-        $client->setHttpClient($guzzleClient);
-
         if (isset($_SESSION['access_token']) && $_SESSION['access_token']) {
-            $client->setAccessToken($_SESSION['access_token']);
-            $service = new Google_Service_Calendar($client);
- 
+            $this->client->setAccessToken($_SESSION['access_token']);
+            $service = new Google_Service_Calendar($this->client);
+
             $calendarId = 'primary';
-          // Print the next 10 events on the user's calendar.
+            // Print the next 10 events on the user's calendar.
             $optParams = array(
                 'maxResults' => 10,
                 'orderBy' => 'startTime',
@@ -37,11 +43,10 @@ class gCalendarController extends Controller
                 'timeMin' => date('c'),
             );
             $results = $service->events->listEvents($calendarId, $optParams);
-           return $results->getItems();
-            
+            return $results->getItems();
 
         } else {
-            return redirect('/oauth');
+            return redirect()->route('oauthCallback');
         }
 
     }
@@ -49,23 +54,17 @@ class gCalendarController extends Controller
     public function oauth()
     {
         session_start();
+
         $rurl = action('gCalendarController@oauth');
-        $client = new Google_Client();
-        $client->setAuthConfigFile('client_secret.json');
-        $client->setRedirectUri($rurl);
-        $client->addScope(Google_Service_Calendar::CALENDAR);
-
-        $guzzleClient = new \GuzzleHttp\Client(array('curl' => array(CURLOPT_SSL_VERIFYPEER => false)));
-        $client->setHttpClient($guzzleClient);
-
+        $this->client->setRedirectUri($rurl);
         if (!isset($_GET['code'])) {
-            $auth_url = $client->createAuthUrl();
+            $auth_url = $this->client->createAuthUrl();
             $filtered_url = filter_var($auth_url, FILTER_SANITIZE_URL);
             return redirect($filtered_url);
         } else {
-            $client->authenticate($_GET['code']);
-            $_SESSION['access_token'] = $client->getAccessToken();
-            return redirect('/cal');
+            $this->client->authenticate($_GET['code']);
+            $_SESSION['access_token'] = $this->client->getAccessToken();
+            return redirect()->route('cal.index');
         }
     }
 
@@ -76,7 +75,7 @@ class gCalendarController extends Controller
      */
     public function create()
     {
-        //
+        return view('calendar.createEvent');
     }
 
     /**
@@ -87,7 +86,30 @@ class gCalendarController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        session_start();
+        $startDateTime = $request->start_date;
+        $endDateTime = $request->end_date;
+
+        if (isset($_SESSION['access_token']) && $_SESSION['access_token']) {
+            $this->client->setAccessToken($_SESSION['access_token']);
+            $service = new Google_Service_Calendar($this->client);
+
+            $calendarId = 'primary';
+            $event = new Google_Service_Calendar_Event([
+                'summary' => $request->title,
+                'description' => $request->description,
+                'start' => ['dateTime' => $startDateTime],
+                'end' => ['dateTime' => $endDateTime],
+                'reminders' => ['useDefault' => true],
+            ]);
+            $results = $service->events->insert($calendarId, $event);
+            if (!$results) {
+                return response()->json(['status' => 'error', 'message' => 'Something went wrong']);
+            }
+            return response()->json(['status' => 'success', 'message' => 'Event Created']);
+        } else {
+            return redirect()->route('oauthCallback');
+        }
     }
 
     /**
