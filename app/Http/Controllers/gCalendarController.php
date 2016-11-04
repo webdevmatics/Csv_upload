@@ -46,7 +46,7 @@ class gCalendarController extends Controller
             return $results->getItems();
 
         } else {
-            return redirect('/oauth');
+            return redirect()->route('oauthCallback');
         }
 
     }
@@ -64,7 +64,7 @@ class gCalendarController extends Controller
         } else {
             $this->client->authenticate($_GET['code']);
             $_SESSION['access_token'] = $this->client->getAccessToken();
-            return redirect('/cal');
+            return redirect()->route('cal.index');
         }
     }
 
@@ -75,7 +75,7 @@ class gCalendarController extends Controller
      */
     public function create()
     {
-
+        return view('calendar.createEvent');
     }
 
     /**
@@ -86,8 +86,9 @@ class gCalendarController extends Controller
      */
     public function store(Request $request)
     {
-        $startDateTime = $request->start;
-        $endDateTime = $request->end;
+        session_start();
+        $startDateTime = $request->start_date;
+        $endDateTime = $request->end_date;
 
         if (isset($_SESSION['access_token']) && $_SESSION['access_token']) {
             $this->client->setAccessToken($_SESSION['access_token']);
@@ -107,7 +108,7 @@ class gCalendarController extends Controller
             }
             return response()->json(['status' => 'success', 'message' => 'Event Created']);
         } else {
-            return redirect('/oauth');
+            return redirect()->route('oauthCallback');
         }
     }
 

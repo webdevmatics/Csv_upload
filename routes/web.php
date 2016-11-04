@@ -28,7 +28,6 @@ Route::get('upload', 'BudgetController@showForm');
 Route::post('upload', 'BudgetController@store');
 
 Auth::routes();
-Route::resource('cal', 'gCalendarController');
-Route::get('oauth', 'gCalendarController@oauth');
+
 
 // Route::get('/home', 'HomeController@index');
